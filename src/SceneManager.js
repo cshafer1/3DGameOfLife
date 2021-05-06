@@ -6,7 +6,7 @@ const cube_geometry = new THREE.BoxGeometry();
 
 // Global Variables
 var golMatrix;
-var materials = new Array();
+var materials = [];
 
 window.onload = function init() {
   // Set up renderer
@@ -34,12 +34,11 @@ window.onload = function init() {
   // Initialize golMatrix to 3D matrix to represent entries
   // 100 x 100 x 100
   // We can add more potentially as a buffer area where cells slowly fade (gliders and such)
-  var material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 10, flatShading: false }  );
-  golMatrix = new Array();
+  golMatrix = [];
   for(let i=0; i < 5; i+=1) {
-    golMatrix[i] = new Array();
+    golMatrix[i] = [];
     for(let j=0; j < 5; j+=1) {
-      golMatrix[i][j] = new Array();
+      golMatrix[i][j] = [];
       for(let k=0; k < 5; k+=1) {
         // we will need to change the way we grab materials upon scaling up size of matrix
         // using 5 x 5 x 5 for testing
