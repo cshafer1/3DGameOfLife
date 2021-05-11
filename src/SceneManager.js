@@ -7,18 +7,22 @@ const cube_geometry = new THREE.BoxGeometry();
 // Global Variables
 var golMatrix;
 var materials = [];
+var controls;
+var gui;
+var gui_props;
+var spotlight;
 
 window.onload = function init() {
   // Set up renderer
   renderer.setSize(  2400, 1800 );
   document.body.appendChild( renderer.domElement );
-
+  gui_props = {light_posX:5}
   // Set background
   scene.background = new THREE.TextureLoader().load("../textures/space.jpeg");
 
   // Set camera
   camera.position.set(0, 0, 5);
-
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
   // Initialize materials
   colors = [
     0xffffff,
@@ -50,11 +54,12 @@ window.onload = function init() {
   // Add lighting
   const light = new THREE.AmbientLight(0xffffff, 0.1);
   scene.add(light);
-  const spotlight = new THREE.SpotLight(0xffffff, 1.5);
+  spotlight = new THREE.SpotLight(0xffffff, 1.5);
   spotlight.position.set(5,0,2);
   spotlight.castShadow = true;
   scene.add(spotlight);
-
+  gui = new dat.GUI({height: 5*32 - 1});
+  gui.add(gui_props, "light_posX", 0, 10);
   animate();
 }
 
@@ -72,11 +77,12 @@ function animate() {
       }
     }
   }
-
+  spotlight.position.x = gui_props.light_posX;
+  controls.update();
 	renderer.render( scene, camera );
 }
 
-// 
+//
 //  Cell Class
 //  Represents a cell within the 3D grid
 //  parameters:
