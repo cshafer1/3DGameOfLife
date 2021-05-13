@@ -27,22 +27,101 @@ window.onload = function init() {
   scene.background = new THREE.TextureLoader().load("../textures/space.jpeg");
 
   // Set camera
-  camera.position.set(5, 15, 15);
+  camera.position.set(50, 50, 50);
   camera.lookAt( 0, 0, 0 );
   controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-  // Initialize geometry and material
-  const geometry = new THREE.BoxGeometry();
-  const material = new THREE.MeshPhongMaterial(); //{opacity: 0.8, transparent: true});
+  // Initialize geometry
+  const vertices = [
+    // front
+    { pos: [-1, -1,  1], norm: [ 0,  0,  1], uv: [0, 0], },
+    { pos: [ 1, -1,  1], norm: [ 0,  0,  1], uv: [1, 0], },
+    { pos: [-1,  1,  1], norm: [ 0,  0,  1], uv: [0, 1], },
+   
+    { pos: [-1,  1,  1], norm: [ 0,  0,  1], uv: [0, 1], },
+    { pos: [ 1, -1,  1], norm: [ 0,  0,  1], uv: [1, 0], },
+    { pos: [ 1,  1,  1], norm: [ 0,  0,  1], uv: [1, 1], },
+    // right
+    { pos: [ 1, -1,  1], norm: [ 1,  0,  0], uv: [0, 0], },
+    { pos: [ 1, -1, -1], norm: [ 1,  0,  0], uv: [1, 0], },
+    { pos: [ 1,  1,  1], norm: [ 1,  0,  0], uv: [0, 1], },
+   
+    { pos: [ 1,  1,  1], norm: [ 1,  0,  0], uv: [0, 1], },
+    { pos: [ 1, -1, -1], norm: [ 1,  0,  0], uv: [1, 0], },
+    { pos: [ 1,  1, -1], norm: [ 1,  0,  0], uv: [1, 1], },
+    // back
+    { pos: [ 1, -1, -1], norm: [ 0,  0, -1], uv: [0, 0], },
+    { pos: [-1, -1, -1], norm: [ 0,  0, -1], uv: [1, 0], },
+    { pos: [ 1,  1, -1], norm: [ 0,  0, -1], uv: [0, 1], },
+   
+    { pos: [ 1,  1, -1], norm: [ 0,  0, -1], uv: [0, 1], },
+    { pos: [-1, -1, -1], norm: [ 0,  0, -1], uv: [1, 0], },
+    { pos: [-1,  1, -1], norm: [ 0,  0, -1], uv: [1, 1], },
+    // left
+    { pos: [-1, -1, -1], norm: [-1,  0,  0], uv: [0, 0], },
+    { pos: [-1, -1,  1], norm: [-1,  0,  0], uv: [1, 0], },
+    { pos: [-1,  1, -1], norm: [-1,  0,  0], uv: [0, 1], },
+   
+    { pos: [-1,  1, -1], norm: [-1,  0,  0], uv: [0, 1], },
+    { pos: [-1, -1,  1], norm: [-1,  0,  0], uv: [1, 0], },
+    { pos: [-1,  1,  1], norm: [-1,  0,  0], uv: [1, 1], },
+    // top
+    { pos: [ 1,  1, -1], norm: [ 0,  1,  0], uv: [0, 0], },
+    { pos: [-1,  1, -1], norm: [ 0,  1,  0], uv: [1, 0], },
+    { pos: [ 1,  1,  1], norm: [ 0,  1,  0], uv: [0, 1], },
+   
+    { pos: [ 1,  1,  1], norm: [ 0,  1,  0], uv: [0, 1], },
+    { pos: [-1,  1, -1], norm: [ 0,  1,  0], uv: [1, 0], },
+    { pos: [-1,  1,  1], norm: [ 0,  1,  0], uv: [1, 1], },
+    // bottom
+    { pos: [ 1, -1,  1], norm: [ 0, -1,  0], uv: [0, 0], },
+    { pos: [-1, -1,  1], norm: [ 0, -1,  0], uv: [1, 0], },
+    { pos: [ 1, -1, -1], norm: [ 0, -1,  0], uv: [0, 1], },
+   
+    { pos: [ 1, -1, -1], norm: [ 0, -1,  0], uv: [0, 1], },
+    { pos: [-1, -1,  1], norm: [ 0, -1,  0], uv: [1, 0], },
+    { pos: [-1, -1, -1], norm: [ 0, -1,  0], uv: [1, 1], },
+  ];
+  const positions = [];
+  const normals = [];
+  const uvs = [];
+  for (const vertex of vertices) {
+    positions.push(...vertex.pos);
+    normals.push(...vertex.norm);
+    uvs.push(...vertex.uv);
+  }
 
+  const geometry = new THREE.BufferGeometry();
+  const positionNumComponents = 3;
+  const normalNumComponents = 3;
+  const uvNumComponents = 2;
+  geometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array(positions), positionNumComponents));
+  geometry.setAttribute(
+      'normal',
+      new THREE.BufferAttribute(new Float32Array(normals), normalNumComponents));
+  geometry.setAttribute(
+      'uv',
+      new THREE.BufferAttribute(new Float32Array(uvs), uvNumComponents));
+
+  // Create an instance of a cube
+  function makeInstance(geometry, color, x, y, z) {
+    const material = new THREE.MeshPhongMaterial({color}); // set transparency here based on whether cube is active in golMatrix
+
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    cube.position.x = x;
+    cube.position.y = y;
+    cube.position.z = z;
+
+    return cube;
+  }
+
+  let cubes = [];
   // Initialize golMatrix to 3D matrix to represent entries
   // We will need an instanced material to change transparency
-  mesh = new THREE.InstancedMesh( geometry, material, 1000 );
-
-  let inc = 0;
-  const offset = -1.5;
-
-  const matrix = new THREE.Matrix4();
 
   golMatrix = [];
   for(let i=0; i < 10; i+=1) {
@@ -50,16 +129,10 @@ window.onload = function init() {
     for(let j=0; j < 10; j+=1) {
       golMatrix[i][j] = [];
       for(let k=0; k < 10; k+=1) {
-
         golMatrix[i][j][k] = new Cell(true);
 
         // Create actual cells
-        matrix.setPosition( offset * i, offset * j, offset * k );
-  
-        mesh.setMatrixAt( inc, matrix );
-        mesh.setColorAt( inc, color );
-  
-        inc++;
+        cubes.push(makeInstance(geometry, 0xffffff, i * 3, j * 3, k * 3));
       }
     }
   }
@@ -67,27 +140,19 @@ window.onload = function init() {
   scene.add( mesh );
   
   // Add lighting
-  //const light = new THREE.AmbientLight(0xffffff, 0.1);
-  //scene.add(light);
   spotlight = new THREE.SpotLight(0xffffff, 1.5);
-  spotlight.position.set(-10, 10, 10);
+  spotlight.position.set(-50, 50, 50);
   spotlight.castShadow = true;
   scene.add(spotlight);
+
+  // Add GUI
   gui = new dat.GUI({height: 5*32 - 1});
   gui.add(gui_props, "light_posX", 0, 10);
 
-  // const light1 = new THREE.HemisphereLight( 0xffffff, 0x000088 );
-  // light1.position.set( - 1, 1.5, 1 );
-  // scene.add( light1 );
-
-  // const light2 = new THREE.HemisphereLight( 0xffffff, 0x880000, 0.5 );
-  // light2.position.set( - 1, - 1.5, - 1 );
-  // scene.add( light2 );
-
+  // Add event listeners
   window.addEventListener( 'resize', onWindowResize );
   document.addEventListener( 'mousemove', onMouseMove );
   document.addEventListener( 'click', onClick );
-
 
   animate();
 }
@@ -117,14 +182,14 @@ function onClick() {
 
   console.dir(intersection);
 
-  if ( intersection.length > 0 ) {
+  // if ( intersection.length > 0 ) {
 
-    const instanceId = intersection[0].instanceId;
+  //   const instanceId = intersection[0].instanceId;
 
-    mesh.setColorAt( instanceId, color.setHex(0x000000) );
-    mesh.instanceColor.needsUpdate = true;
+  //   mesh.setColorAt( instanceId, color.setHex(0x000000) );
+  //   mesh.instanceColor.needsUpdate = true;
 
-  }
+  // }
 }
 
 function gameOfLife() {
