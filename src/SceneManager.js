@@ -21,7 +21,7 @@ window.onload = function init() {
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.setClearColor( 0xffffff, 0);
   document.body.appendChild( renderer.domElement );
-  gui_props = { light_posX: 55}
+  gui_props = { light_posX: 85}
 
   // Set background
   scene.background = new THREE.TextureLoader().load("../textures/space.jpeg");
@@ -90,18 +90,31 @@ window.onload = function init() {
 
 	geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
+  // Initialize golMatrix to 3D matrix to represent entries
+  // We will need an instanced material to change transparency
+  // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
   var colors = []
   var offsets = []
   golMatrix = [];
-  var index = 0;
-  for(let i=0; i < 10; i+=1) {
+  for(let i=0; i < 12; i+=1) {
     golMatrix[i] = [];
-    for(let j=0; j < 10; j+=1) {
+    for(let j=0; j < 12; j+=1) {
       golMatrix[i][j] = [];
-      for(let k=0; k < 10; k+=1) {
-        golMatrix[i][j][k] = new Cell(true);
+      for(let k=0; k < 12; k+=1) {
         offsets.push(i * 3, j * 3, k * 3);
-        colors.push(1.0,0.0,0.0,0.8);
+
+        // Active game cubes
+        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+          golMatrix[i][j][k] = new Cell(true, 0); // this isn't quite right - need to put # of neighbors in
+          colors.push(1.0,0.0,0.0,0.8);
+        } 
+      
+        
+        // Border layer
+        else {
+          golMatrix[i][j][k] = new Cell(false, 0);
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+        }
       }
     }
   }
@@ -134,14 +147,8 @@ window.onload = function init() {
         vec4 diffuseColor = vec4(mix(diffuse, vColor.rgb, vColor.a), vColor.a);
       `)
   }
-  const mesh = new THREE.Mesh(geometry, phongMaterial);
+  mesh = new THREE.Mesh(geometry, phongMaterial);
   scene.add(mesh);
-  let cubes = [];
-  // Initialize golMatrix to 3D matrix to represent entries
-  // We will need an instanced material to change transparency
-
-
-
 
   // Add lighting
   spotlight = new THREE.SpotLight(0xffffff, 1.5);
@@ -198,32 +205,86 @@ function onClick() {
   scene.children[0].geometry.attributes.color.needsUpdate = true;
   //let intersection = raycaster.intersectObject( mesh, true);
 
-  //console.dir(intersection);
+  // console.dir(intersection);
 
   // if ( intersection.length > 0 ) {
 
-  //   const instanceId = intersection[0].instanceId;
+  //   const instanceId = 1; //(interection[0]) ? intersection[0].id : 1000;
 
-  //   mesh.setColorAt( instanceId, color.setHex(0x000000) );
-  //   mesh.instanceColor.needsUpdate = true;
+  //   const transparentIndex = (instanceId * 4) - 1;
 
+  //   colors[transparentIndex] = (colors[transparentIndex] == 0) ? 1 : 0;
   // }
+  // scene.children[0].geometry.attributes.color.needsUpdate = true;
+
 }
 
-function gameOfLife() {
+function gameOfLife(ruleset) {
 
+  var e_min, e_max;
+  var f_min, f_max;
+
+  // Set rules based on current ruleset
+  if(ruleset == 4555) {
+    e_min = 4;
+    e_max = 5;
+    f_min = 5;
+    f_max = 5;
+  } else if (ruleset == 5766) {
+    e_min = 5;
+    e_max = 7;
+    f_min = 6;
+    f_max = 6;
+  }
+
+  var tempGol = golMatrix;
+  var old_cell;
+  var index = 1;
+
+  // For each cell, check conditions as defined by rules
+  // Update if cell is alive and neighbors' neighbor count accordingly
+  for(let i=1; i < 11; i+=1) {
+    for(let j=1; j < 11; j+=1) {
+      for(let k=1; k < 11; k+=1) {
+        old_cell = golMatrix[i][j][k];
+        
+        // Death Condition
+        if(old_cell.alive && (old_cell.neighbors < e_min || old_cell.neighbors > e_max)) {
+          tempGol[i][j][k].die(tempGol, i, j, k);
+          scene.children[0].geometry.attributes.color.array[(index * 4) - 1] = 0.0; // make cube transparent
+
+        } 
+        // Acitvation Condition
+        else if (!old_cell.alive && old_cell.neighbors >= f_min && old_cell.neighbors <= f_max) {
+          tempGol[i][j][k].activate(tempGol, i, j, k);
+          scene.children[0].geometry.attributes.color.array[(index * 4) - 1] = 1.0; // make cube visible
+
+        }
+        index += 1;
+     }
+   }
+ }
+
+  scene.children[0].geometry.attributes.color.needsUpdate = true;
+  golMatrix = tempGol;
+}
+
+function updateNeighbors(tempGol, i, j, k) {
+  // Update neighbor counts of new matrix
+  for(let x=-1; x <= 1; x+=1) {
+    for(let y=-1; y <= 1; y+=1) {
+      for(let z=-1; z <= 1; z+=1) {
+        if(x == 0 && y == 0 && z == 0) continue;
+        tempGol[i+x][j+y][k+z].neighbors += tempGol[i][j][k].alive ? 1 : -1;
+      }
+    }
+  }
 }
 
 function animate() {
 	requestAnimationFrame( animate );
 
-  // for(let i=0; i < 10; i+=1) {
-  //   for(let j=0; j < 10; j+=1) {
-  //     for(let k=0; k < 10; k+=1) {
-  //
-  //     }
-  //   }
-  // }
+  gameOfLife(4555);
   spotlight.position.x = gui_props.light_posX;
   controls.update();
 	renderer.render( scene, camera );
@@ -236,7 +297,18 @@ function animate() {
 //    boolean alive
 //
 class Cell {
-  constructor(alive) {
+  constructor(alive, neighbors) {
     this.alive = alive;
+    this.neighbors = neighbors;
+  }
+
+  die(tempGol, i, j, k) {
+    this.alive = false;
+    updateNeighbors(tempGol, i, j, k);
+  }
+
+  activate(tempGol, i, j, k) {
+    this.alive = true;
+    updateNeighbors(tempGol, i, j, k);
   }
 }
