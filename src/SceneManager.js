@@ -91,20 +91,23 @@ window.onload = function init() {
     uvs.push(...vertex.uv);
   }
 
-  const geometry = new THREE.BufferGeometry();
+  const geometry = new THREE.InstancedBufferGeometry();
+  
   const positionNumComponents = 3;
   const normalNumComponents = 3;
   const uvNumComponents = 2;
+
   geometry.setAttribute(
       'position',
-      new THREE.BufferAttribute(new Float32Array(positions), positionNumComponents));
+      new THREE.BufferAttribute(new THREE.Float32BufferAttribute(positions, positionNumComponents))); 
   geometry.setAttribute(
       'normal',
-      new THREE.BufferAttribute(new Float32Array(normals), normalNumComponents));
+      new THREE.BufferAttribute(new THREE.Float32BufferAttribute(normals, normalNumComponents)));
   geometry.setAttribute(
       'uv',
-      new THREE.BufferAttribute(new Float32Array(uvs), uvNumComponents));
+      new THREE.BufferAttribute(new THREE.Float32BufferAttribute(uvs, uvNumComponents)));
 
+ 
   // Create an instance of a cube
   function makeInstance(geometry, color, x, y, z) {
     const material = new THREE.MeshPhongMaterial({color}); // set transparency here based on whether cube is active in golMatrix
@@ -122,7 +125,6 @@ window.onload = function init() {
   let cubes = [];
   // Initialize golMatrix to 3D matrix to represent entries
   // We will need an instanced material to change transparency
-
   golMatrix = [];
   for(let i=0; i < 10; i+=1) {
     golMatrix[i] = [];
