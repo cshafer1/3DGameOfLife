@@ -127,7 +127,6 @@ window.onload = function init() {
       vec3 transformed = vec3(position + offset);\n
       vColor = color;
     `)
-    shader.uniforms.opacity = {value: 0.5}
     shader.fragmentShader = `
       varying vec4 vColor;\n
       ${shader.fragmentShader}
