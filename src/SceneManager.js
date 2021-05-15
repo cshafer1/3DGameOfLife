@@ -15,7 +15,8 @@ var gui_props;
 var spotlight;
 var mesh;
 var time = 0;
-
+var gui_folder;
+var parameters;
 
 window.onload = function init() {
   // Set up renderer
@@ -24,7 +25,8 @@ window.onload = function init() {
   renderer.setClearColor( 0xffffff, 0);
   document.body.appendChild( renderer.domElement );
   gui_props = { light_posX: 85,
-                generation_time: 1.0}
+                generation_time: 1.0,
+		}
 
   // Set background
   scene.background = new THREE.TextureLoader().load("../textures/space.jpeg");
@@ -33,6 +35,8 @@ window.onload = function init() {
   camera.position.set(50, 50, 50);
   camera.lookAt( 0, 0, 0 );
   controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+ 
 
   // Initialize geometry sorted by x,y,z,w,u,v,s,t, normalized data not needed.
   const vertexBuffer = new THREE.InterleavedBuffer( new Float32Array( [
@@ -106,8 +110,10 @@ window.onload = function init() {
       golMatrix[i][j] = [];
       for(let k=0; k < 12; k+=1) {
         offsets.push(i * 3, j * 3, k * 3);
-
+   
         // Active game cubes
+	//cube: skip adding offsets and colors and geometry will not add anything there
+	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
         if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
           var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex); // this isn't quite right - need to put # of neighbors in
@@ -118,8 +124,6 @@ window.onload = function init() {
           }
           tmpIndex += 4;
         }
-
-
         // Border layer
         else {
           golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
@@ -174,7 +178,22 @@ window.onload = function init() {
   gui = new dat.GUI({height: 5*32 - 1});
   gui.add(gui_props, "light_posX", 0, 100);
   gui.add(gui_props, "generation_time", 0, 3);
-
+  parameters = {
+    is_cube: true,
+    is_sphere: false,
+    is_donut: false
+  }
+  //var first = gui.addFolder("Shape");
+   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){setChecked("is_cube")});
+   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){setChecked("is_sphere")});
+   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){setChecked("is_donut")}); 
+  function setChecked( prop ){
+ 
+   for (let param in parameters){ 
+	 parameters[param] = false;
+  }
+    parameters[prop] = true;
+  }
   // Add event listeners
   window.addEventListener( 'resize', onWindowResize );
   document.addEventListener( 'mousemove', onMouseMove );
@@ -229,7 +248,7 @@ function onClick() {
 }
 
 function gameOfLife(ruleset) {
-
+  
   var e_min, e_max;
   var f_min, f_max;
 
@@ -249,9 +268,11 @@ function gameOfLife(ruleset) {
   var tempGol = golMatrix;
   var old_cell;
   var index;
-
+  var curr_shape; 
+ //spotlight.position.x = gui_props.light_posX; 
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
+// if(parameters.is_cube == true){	
   for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
       for(let k=1; k < 11; k+=1) {
@@ -261,19 +282,18 @@ function gameOfLife(ruleset) {
           tempGol[i][j][k].die(tempGol, i, j, k);
           index = old_cell.index;
           scene.children[0].geometry.attributes.color.array[index + 3] = 0.0; // make cube transparent
-
         }
         // Acitvation Condition
         else if (!old_cell.alive && old_cell.neighbors >= f_min && old_cell.neighbors <= f_max) {
           tempGol[i][j][k].activate(tempGol, i, j, k);
           index = old_cell.index;
+	
           scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible
-
         }
      }
    }
- }
-
+  }
+ //}
   scene.children[0].geometry.attributes.color.needsUpdate = true;
   golMatrix = tempGol;
 }
