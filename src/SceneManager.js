@@ -1,9 +1,12 @@
+/* 3D Game of Life
+   CSE 40166 Final Project
+*/
 // Global Constants
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const color = new THREE.Color();
-const raycaster = new THREE.Raycaster();
+//const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2( 1, 1 );
 
 // Global Variables
@@ -17,7 +20,11 @@ var mesh;
 var time = 0;
 var gui_folder;
 var parameters;
-
+var dir;
+//var r;
+var x;
+var y;
+var z;
 window.onload = function init() {
   // Set up renderer
   renderer.setPixelRatio( window.devicePixelRatio );
@@ -35,9 +42,9 @@ window.onload = function init() {
   camera.position.set(50, 50, 50);
   camera.lookAt( 0, 0, 0 );
   controls = new THREE.OrbitControls(camera, renderer.domElement);
-
- 
-
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.25;
+  //controls.autoRotate = true;
   // Initialize geometry sorted by x,y,z,w,u,v,s,t, normalized data not needed.
   const vertexBuffer = new THREE.InterleavedBuffer( new Float32Array( [
 				// Front
@@ -183,7 +190,6 @@ window.onload = function init() {
     is_sphere: false,
     is_donut: false
   }
-  //var first = gui.addFolder("Shape");
    gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){setChecked("is_cube")});
    gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){setChecked("is_sphere")});
    gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){setChecked("is_donut")}); 
@@ -217,12 +223,22 @@ function onMouseMove( event ) {
 
   mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
   mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
+ 
 }
 
 function onClick() {
-  raycaster.setFromCamera( mouse, camera );
-  //Dirty for loop to change colors and transparency dynamically, 4000 is the limit
+ //  raycaster.setFromCamera( mouse, camera );
+   controls.update();
+ 
+   x = (event.screenX / window.innerWidth) * 2 - 1;
+   y = (event.screenY / window.innerHeight) * 2 + 1;
+   //console.log(x);
+   dir = new THREE.Vector3(x, y, 1);
+   dir.unproject(camera);
+   const ray = new THREE.Raycaster(camera.position, dir.sub(camera.position).normalize());
+   ray.setFromCamera(mouse, camera);
+ 
+ //Dirty for loop to change colors and transparency dynamically, 4000 is the limit
   //Because we made 1000 cubes, and theres 4 color variables per cube.
   //for (let i = 0; i < 4000; i += 4) {
     //r = Math.random()
@@ -236,6 +252,7 @@ function onClick() {
   //}
   //scene.children[0].geometry.attributes.color.needsUpdate = true;
   let intersection = raycaster.intersectObjects(scene.children[0]);
+ 
 
   // console.dir(intersection);
 
@@ -272,8 +289,8 @@ function gameOfLife(ruleset) {
  //spotlight.position.x = gui_props.light_posX; 
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
-// if(parameters.is_cube == true){	
-  for(let i=1; i < 11; i+=1) {
+
+ for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
       for(let k=1; k < 11; k+=1) {
         old_cell = golMatrix[i][j][k];
@@ -287,13 +304,13 @@ function gameOfLife(ruleset) {
         else if (!old_cell.alive && old_cell.neighbors >= f_min && old_cell.neighbors <= f_max) {
           tempGol[i][j][k].activate(tempGol, i, j, k);
           index = old_cell.index;
-	
-          scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible
-        }
+	  if(parameters.is_cube == true){
+         	 scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible
+           }
+	}
      }
    }
   }
- //}
   scene.children[0].geometry.attributes.color.needsUpdate = true;
   golMatrix = tempGol;
 }
@@ -346,6 +363,7 @@ class Cell {
     this.alive = alive;
     this.neighbors = neighbors;
     this.index = index;
+    //this.outofbounds = outofbounds;
   }
 
   die(tempGol, i, j, k) {
