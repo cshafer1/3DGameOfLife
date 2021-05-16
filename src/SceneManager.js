@@ -6,7 +6,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const color = new THREE.Color();
-//const raycaster = new THREE.Raycaster();
+const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2( 1, 1 );
 
 // Global Variables
@@ -18,13 +18,9 @@ var gui_props;
 var spotlight;
 var mesh;
 var time = 0;
-var gui_folder;
 var parameters;
-var dir;
-//var r;
-var x;
-var y;
-var z;
+
+
 window.onload = function init() {
   // Set up renderer
   renderer.setPixelRatio( window.devicePixelRatio );
@@ -80,7 +76,7 @@ window.onload = function init() {
 			] ), 8 );
 
   const geometry = new THREE.InstancedBufferGeometry();
-
+  
   //Positions for cubes loaded from vertexBuffer, 3 data points, starting at position 0.
   const positions = new THREE.InterleavedBufferAttribute(vertexBuffer, 3, 0);
   //UV coords for cubes, 2 data points, starting at position 4.
@@ -123,7 +119,9 @@ window.onload = function init() {
 	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
         if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
           var rand_bool = Math.random() < 0.2;
+          //check which shape
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex); // this isn't quite right - need to put # of neighbors in
+          
           if(rand_bool)
             colors.push(1.0,0.0,0.0,0.8);
           else {
@@ -227,16 +225,8 @@ function onMouseMove( event ) {
 }
 
 function onClick() {
- //  raycaster.setFromCamera( mouse, camera );
+   raycaster.setFromCamera( mouse, camera );
    controls.update();
- 
-   x = (event.screenX / window.innerWidth) * 2 - 1;
-   y = (event.screenY / window.innerHeight) * 2 + 1;
-   //console.log(x);
-   dir = new THREE.Vector3(x, y, 1);
-   dir.unproject(camera);
-   const ray = new THREE.Raycaster(camera.position, dir.sub(camera.position).normalize());
-   ray.setFromCamera(mouse, camera);
  
  //Dirty for loop to change colors and transparency dynamically, 4000 is the limit
   //Because we made 1000 cubes, and theres 4 color variables per cube.
@@ -350,6 +340,54 @@ function animate(delta) {
   spotlight.position.x = gui_props.light_posX;
   controls.update();
 	renderer.render( scene, camera );
+}
+/*Shape functions*/
+//function to draw generic torus
+function drawTorus(r, sr, num_fac, section_num_face) 
+//radius, section radius, number of faces, number of faces on each section
+{
+
+
+  var vert = new Array();
+ 
+  // Iterates along the big circle and then around a section
+  for(var i=0;i<n;i++)               // Iterates over all strip rounds
+   {
+     for(var j=0;j<sn+1*(i==n-1);j++) // Iterates along the torus section
+     {
+        //angles
+        var a =  2*Math.PI*(i+j/section_num_face+k)/n;
+        var sa = 2*Math.PI*j/section_num_face;
+        var x, y, z;
+ 
+        // Coordinates on the surface of the torus
+        vert.push(x = (r+sr*Math.cos(sa))*Math.cos(a)); // X
+        vert.push(y = (r+sr*Math.cos(sa))*Math.sin(a)); // Y
+        vert.push(z = sr*Math.sin(sa));                 // Z
+      
+       }
+   }
+  // Converts and returns array
+  var obj = new Object();
+  obj.vertices = new Float32Array(vert);
+  obj.colors = new Float32Array(col);
+  return obj;
+}
+
+function drawSphere(radius){
+    var vertices = new Array();		
+    var increment = Math.PI/36;
+
+    for (var theta = 0.0; theta < Math.PI*2 - increment; theta += increment){
+        if(theta == 0.0){
+            vertices.push(vec2(Math.cos(theta)*radius, Math.sin(theta)*radius));
+        }
+        vertices.push(vec2(Math.cos(theta+increment)*radius, Math.sin(theta+increment)*radius));
+    }
+    //return array
+    var obj = new Object();
+    obj.vertices = new Float32Array(vertices);
+    return obj;
 }
 
 //
