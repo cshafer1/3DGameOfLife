@@ -163,6 +163,10 @@ window.onload = function init() {
     running = true;
     setChecked("is_cube");
     newCubeGame();
+    cubeData = newCubeGame();
+    colors = cubeData[0];
+    offsets = cubeData[1];
+  
     requestAnimationFrame(animate);
   });
   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
