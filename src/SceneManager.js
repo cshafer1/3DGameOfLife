@@ -19,6 +19,7 @@ var spotlight;
 var mesh;
 var time = 0;
 var parameters;
+var running = true;
 
 
 window.onload = function init() {
@@ -100,88 +101,13 @@ window.onload = function init() {
 
 	geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
-  // Cube
 
   // // Initialize golMatrix to 3D matrix to represent entries
   // // We will need an instanced material to change transparency
   // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
-  var colors = []
-  var offsets = []
-  var tmpIndex = 0;
-  golMatrix = [];
-  for(let i=0; i < 12; i+=1) {
-    golMatrix[i] = [];
-    for(let j=0; j < 12; j+=1) {
-      golMatrix[i][j] = [];
-      for(let k=0; k < 12; k+=1) {
-   
-        // Active game cubes
-	//cube: skip adding offsets and colors and geometry will not add anything there
-	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
-        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-          offsets.push(i * 3, j * 3, k * 3);
-
-          var rand_bool = true; //Math.random() < 0.2;
-          //check which shape
-          golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
-          
-          if(rand_bool)
-            colors.push(1.0,0.0,0.0,0.8);
-          else {
-            colors.push(1.0,0.0,0.0,0.0); // transparent
-          }
-          tmpIndex += 4;
-        }
-        // Border layer
-        else {
-          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
-          tmpIndex += 4;
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-        }
-      }
-    }
-  }
-  resetAllNeighbors(golMatrix);
-
-  // Donut
-
-  // // Initialize golMatrix to 3D matrix to represent entries
-  // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
-  // var colors = []
-  // var offsets = []
-  // var tmpIndex = 0;
-  // golMatrix = [];
-  // for(let i=0; i < 22; i+=1) {
-  //   golMatrix[i] = [];
-  //   for(let j=0; j < 12; j+=1) {
-  //     golMatrix[i][j] = [];
-  //     for(let k=0; k < 12; k+=1) {
-   
-  //       // Active game cubes
-  //       if((i != 0 && i != 24) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-  //         // Idea here is to render a circle of columns...
-  //         offsets.push(Math.sin(2 * Math.PI * i / 10) * 60, j * 3, Math.cos(Math.PI * k / 5) * 30);
-  //         var rand_bool = true; //Math.random() < 0.2;
-  //         //check which shape
-  //         golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
-          
-  //         if(rand_bool)
-  //           colors.push(1.0,0.0,0.0,0.8);
-  //         else {
-  //           colors.push(1.0,0.0,0.0,0.0); // transparent
-  //         }
-  //         tmpIndex += 4;
-  //       }
-  //       // Border layer
-  //       else {
-  //         golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
-  //         tmpIndex += 4;
-  //       }
-  //     }
-  //   }
-  // }
-  // resetAllNeighbors(golMatrix);
-
+  var cubeData = newCubeGame();
+  var colors = cubeData[0];
+  var offsets = cubeData[1];
 
   colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
   colorAttr.dynamic = true;
@@ -230,11 +156,31 @@ window.onload = function init() {
   parameters = {
     is_cube: true,
     is_sphere: false,
-    is_donut: false
+    is_donut: false,
+    stop: false
   }
-   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){setChecked("is_cube")});
-   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){setChecked("is_sphere")});
-   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){setChecked("is_donut")}); 
+  gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){
+    running = true;
+    setChecked("is_cube");
+    newCubeGame();
+    requestAnimationFrame(animate);
+  });
+  gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
+    setChecked("is_sphere");
+    running = true;
+    requestAnimationFrame(animate);
+  });
+  gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
+    setChecked("is_donut");
+    running = true;
+    requestAnimationFrame(animate);
+  }); 
+  gui.add(parameters, "stop").name('Stop').listen().onChange(function(){
+    running = !running;
+    setChecked("stop");
+  }); 
+
+  
   function setChecked( prop ){
  
    for (let param in parameters){ 
@@ -295,6 +241,91 @@ function onClick() {
      console.log(intersection.length)
    }
    //scene.children[0].geometry.attributes.color.needsUpdate = true;
+
+}
+
+function newCubeGame() {
+  var colors = [];
+  var offsets = [];
+
+  var tmpIndex = 0;
+  golMatrix = [];
+  for(let i=0; i < 12; i+=1) {
+    golMatrix[i] = [];
+    for(let j=0; j < 12; j+=1) {
+      golMatrix[i][j] = [];
+      for(let k=0; k < 12; k+=1) {
+   
+        // Active game cubes
+	//cube: skip adding offsets and colors and geometry will not add anything there
+	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
+        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+          offsets.push(i * 3, j * 3, k * 3);
+
+          var rand_bool = Math.random() < 0.2;
+          //check which shape
+          golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
+          
+          if(rand_bool)
+            colors.push(1.0,0.0,0.0,0.8);
+          else {
+            colors.push(1.0,0.0,0.0,0.0); // transparent
+          }
+          tmpIndex += 4;
+        }
+        // Border layer
+        else {
+          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
+          tmpIndex += 4;
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+        }
+      }
+    }
+  }
+  resetAllNeighbors(golMatrix);
+
+  return [ colors, offsets ]
+}
+
+function newDonutGame() {
+    // Donut
+
+  // // Initialize golMatrix to 3D matrix to represent entries
+  // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
+  // var colors = []
+  // var offsets = []
+  // var tmpIndex = 0;
+  // golMatrix = [];
+  // for(let i=0; i < 22; i+=1) {
+  //   golMatrix[i] = [];
+  //   for(let j=0; j < 12; j+=1) {
+  //     golMatrix[i][j] = [];
+  //     for(let k=0; k < 12; k+=1) {
+   
+  //       // Active game cubes
+  //       if((i != 0 && i != 24) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+  //         // Idea here is to render a circle of columns...
+  //         offsets.push(Math.sin(2 * Math.PI * i / 10) * 60, j * 3, Math.cos(Math.PI * k / 5) * 30);
+  //         var rand_bool = true; //Math.random() < 0.2;
+  //         //check which shape
+  //         golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
+          
+  //         if(rand_bool)
+  //           colors.push(1.0,0.0,0.0,0.8);
+  //         else {
+  //           colors.push(1.0,0.0,0.0,0.0); // transparent
+  //         }
+  //         tmpIndex += 4;
+  //       }
+  //       // Border layer
+  //       else {
+  //         golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
+  //         tmpIndex += 4;
+  //       }
+  //     }
+  //   }
+  // }
+  // resetAllNeighbors(golMatrix);
 
 }
 
@@ -373,7 +404,7 @@ function updateNeighbors(tempGol, i, j, k) {
 }
 
 function animate(delta) {
-	requestAnimationFrame( animate );
+	if(running) requestAnimationFrame( animate );
   delta_secs = delta * 0.001;
   if(delta_secs - time > gui_props.generation_time){
     gameOfLife(4555);
