@@ -173,6 +173,14 @@ window.onload = function init() {
   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
     setChecked("is_sphere");
     running = true;
+    cubeData = newSphereGame();
+    colors = cubeData[0];
+    offsets = cubeData[1];
+    colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
+    colorAttr.dynamic = true;
+    //Send data to the shader.
+    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+    geometry.setAttribute('color', colorAttr);
     requestAnimationFrame(animate);
   });
   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
@@ -258,6 +266,46 @@ function onClick() {
 }
 
 function newCubeGame() {
+  var colors = [];
+  var offsets = [];
+
+  var tmpIndex = 0;
+  golMatrix = [];
+  for(let i=0; i < 12; i+=1) {
+    golMatrix[i] = [];
+    for(let j=0; j < 12; j+=1) {
+      golMatrix[i][j] = [];
+      for(let k=0; k < 12; k+=1) {
+        offsets.push(i * 3, j * 3, k * 3);
+
+        // Active game cubes
+        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+
+          var rand_bool = Math.random() < 0.2;
+          golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
+          
+          if(rand_bool)
+            colors.push(1.0,0.0,0.0,0.8);
+          else {
+            colors.push(1.0,0.0,0.0,0.0); // transparent
+          }
+          tmpIndex += 4;
+        }
+        // Border layer
+        else {
+          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
+          tmpIndex += 4;
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+        }
+      }
+    }
+  }
+  resetAllNeighbors(golMatrix, "cube");
+
+  return [ colors, offsets ]
+}
+
+function newSphereGame() {
   var colors = [];
   var offsets = [];
 
