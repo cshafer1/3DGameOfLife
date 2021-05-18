@@ -145,8 +145,6 @@ window.onload = function init() {
   spotlight = new THREE.SpotLight(0xffffff, 1.5);
   spotlight.position.set(40,20,15);
   spotlight.castShadow = true;
-  const spotLightHelper = new THREE.SpotLightHelper(spotlight);
-  scene.add(spotLightHelper)
   scene.add(spotlight);
 
   // Add GUI
@@ -180,7 +178,7 @@ window.onload = function init() {
   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
     setChecked("is_donut");
     running = true;
-    cubeData = newCubeGame();
+    cubeData = newDonutGame();
     colors = cubeData[0];
     offsets = cubeData[1];
     colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
@@ -273,12 +271,9 @@ function newCubeGame() {
         offsets.push(i * 3, j * 3, k * 3);
 
         // Active game cubes
-	//cube: skip adding offsets and colors and geometry will not add anything there
-	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
         if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
 
           var rand_bool = Math.random() < 0.2;
-          //check which shape
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
           if(rand_bool)
@@ -297,7 +292,7 @@ function newCubeGame() {
       }
     }
   }
-  resetAllNeighbors(golMatrix);
+  resetAllNeighbors(golMatrix, "cube");
 
   return [ colors, offsets ]
 }
@@ -308,25 +303,32 @@ function newDonutGame() {
 
   var tmpIndex = 0;
   golMatrix = [];
-  for(let i=0; i < 12; i+=1) {
+  for(let i=0; i < 25; i+=1) {
     golMatrix[i] = [];
     for(let j=0; j < 12; j+=1) {
       golMatrix[i][j] = [];
-      for(let k=0; k < 12; k+=1) {
-        offsets.push(i * 3, j * 3, k * 3);
+
+
+      for(let k=0; k < 25; k+=1) {
+        offsets.push(i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
+        offsets.push(i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
+        offsets.push(-1 * i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
+        offsets.push(-1 * i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2))); 
 
         // Active game cubes
-	//cube: skip adding offsets and colors and geometry will not add anything there
-	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
-        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-
-          var rand_bool = Math.random() < 0.2;
-          //check which shape
+        if((j != 0 && j != 11) && (k != 0 && k != 24)) {
+          var rand_bool = true; //Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
-          if(rand_bool)
-            colors.push(1.0,0.0,0.0,0.8);
-          else {
+          if(rand_bool) {
+            colors.push(0.8,0.0,0.0,0.8);
+            colors.push(0.8,0.0,0.0,0.8);
+            colors.push(0.8,0.0,0.0,0.8);
+            colors.push(0.8,0.0,0.0,0.8);
+          } else {
+            colors.push(1.0,0.0,0.0,0.0); // transparent
+            colors.push(1.0,0.0,0.0,0.0); // transparent
+            colors.push(1.0,0.0,0.0,0.0); // transparent
             colors.push(1.0,0.0,0.0,0.0); // transparent
           }
           tmpIndex += 4;
@@ -336,11 +338,14 @@ function newDonutGame() {
           golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
           tmpIndex += 4;
           colors.push(1.0,1.0,1.0,0.0); // transparent
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+          colors.push(1.0,1.0,1.0,0.0); // transparent
         }
       }
     }
   }
-  resetAllNeighbors(golMatrix);
+  resetAllNeighbors(golMatrix, "donut");
 
   return [ colors, offsets ]
 }
@@ -362,12 +367,13 @@ function gameOfLife(ruleset) {
     f_min = 6;
     f_max = 6;
   }
-  resetAllNeighbors(golMatrix);
+  resetAllNeighbors(golMatrix, "cube");
   var tempGol = golMatrix;
   var old_cell;
   var index;
-  var curr_shape; 
  //spotlight.position.x = gui_props.light_posX; 
+
+
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
 
@@ -394,13 +400,23 @@ function gameOfLife(ruleset) {
   golMatrix = tempGol;
 }
 
-function resetAllNeighbors(golMatrix) {
-  for(let i=1; i < 11; i+=1) {
-    for(let j=1; j < 11; j+=1) {
-      for(let k=1; k < 11; k+=1) {
-        updateNeighbors(golMatrix, i, j, k);
+function resetAllNeighbors(golMatrix, type) {
+  if(type == "cube") {
+    for(let i=1; i < 11; i+=1) {
+      for(let j=1; j < 11; j+=1) {
+        for(let k=1; k < 11; k+=1) {
+          updateNeighbors(golMatrix, i, j, k);
+        }
       }
     }
+  } else if (type == "donut") {
+    // for(let i=1; i < 63; i+=1) {
+    //   for(let j=1; j < 63; j+=1) {
+    //     for(let k=1; k < 63; k+=1) {
+    //       updateNeighbors(golMatrix, i, j, k);
+    //     }
+    //   }
+    // }
   }
 }
 
