@@ -160,13 +160,16 @@ window.onload = function init() {
     stop: false
   }
   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){
-    running = true;
     setChecked("is_cube");
-    newCubeGame();
+    running = true;
     cubeData = newCubeGame();
     colors = cubeData[0];
     offsets = cubeData[1];
-  
+    colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
+    colorAttr.dynamic = true;
+    //Send data to the shader.
+    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+    geometry.setAttribute('color', colorAttr);
     requestAnimationFrame(animate);
   });
   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
@@ -177,6 +180,14 @@ window.onload = function init() {
   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
     setChecked("is_donut");
     running = true;
+    cubeData = newCubeGame();
+    colors = cubeData[0];
+    offsets = cubeData[1];
+    colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
+    colorAttr.dynamic = true;
+    //Send data to the shader.
+    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+    geometry.setAttribute('color', colorAttr);
     requestAnimationFrame(animate);
   }); 
   gui.add(parameters, "stop").name('Stop').listen().onChange(function(){
@@ -292,45 +303,46 @@ function newCubeGame() {
 }
 
 function newDonutGame() {
-    // Donut
+  var colors = [];
+  var offsets = [];
 
-  // // Initialize golMatrix to 3D matrix to represent entries
-  // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
-  // var colors = []
-  // var offsets = []
-  // var tmpIndex = 0;
-  // golMatrix = [];
-  // for(let i=0; i < 22; i+=1) {
-  //   golMatrix[i] = [];
-  //   for(let j=0; j < 12; j+=1) {
-  //     golMatrix[i][j] = [];
-  //     for(let k=0; k < 12; k+=1) {
-   
-  //       // Active game cubes
-  //       if((i != 0 && i != 24) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-  //         // Idea here is to render a circle of columns...
-  //         offsets.push(Math.sin(2 * Math.PI * i / 10) * 60, j * 3, Math.cos(Math.PI * k / 5) * 30);
-  //         var rand_bool = true; //Math.random() < 0.2;
-  //         //check which shape
-  //         golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
+  var tmpIndex = 0;
+  golMatrix = [];
+  for(let i=0; i < 12; i+=1) {
+    golMatrix[i] = [];
+    for(let j=0; j < 12; j+=1) {
+      golMatrix[i][j] = [];
+      for(let k=0; k < 12; k+=1) {
+        offsets.push(i * 3, j * 3, k * 3);
+
+        // Active game cubes
+	//cube: skip adding offsets and colors and geometry will not add anything there
+	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
+        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+
+          var rand_bool = Math.random() < 0.2;
+          //check which shape
+          golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
-  //         if(rand_bool)
-  //           colors.push(1.0,0.0,0.0,0.8);
-  //         else {
-  //           colors.push(1.0,0.0,0.0,0.0); // transparent
-  //         }
-  //         tmpIndex += 4;
-  //       }
-  //       // Border layer
-  //       else {
-  //         golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
-  //         tmpIndex += 4;
-  //       }
-  //     }
-  //   }
-  // }
-  // resetAllNeighbors(golMatrix);
+          if(rand_bool)
+            colors.push(1.0,0.0,0.0,0.8);
+          else {
+            colors.push(1.0,0.0,0.0,0.0); // transparent
+          }
+          tmpIndex += 4;
+        }
+        // Border layer
+        else {
+          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
+          tmpIndex += 4;
+          colors.push(1.0,1.0,1.0,0.0); // transparent
+        }
+      }
+    }
+  }
+  resetAllNeighbors(golMatrix);
 
+  return [ colors, offsets ]
 }
 
 function gameOfLife(ruleset) {
@@ -359,7 +371,7 @@ function gameOfLife(ruleset) {
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
 
- for(let i=1; i < 11; i+=1) {
+  for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
       for(let k=1; k < 11; k+=1) {
         old_cell = golMatrix[i][j][k];
@@ -373,16 +385,15 @@ function gameOfLife(ruleset) {
         else if (!old_cell.alive && old_cell.neighbors >= f_min && old_cell.neighbors <= f_max) {
           tempGol[i][j][k].activate(tempGol, i, j, k);
           index = old_cell.index;
-	  if(parameters.is_cube == true){
-         	 scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible
-           }
-	}
-     }
-   }
+         	scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible 
+	      }
+      }
+    }
   }
   scene.children[0].geometry.attributes.color.needsUpdate = true;
   golMatrix = tempGol;
 }
+
 function resetAllNeighbors(golMatrix) {
   for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
@@ -391,8 +402,8 @@ function resetAllNeighbors(golMatrix) {
       }
     }
   }
-
 }
+
 function updateNeighbors(tempGol, i, j, k) {
   // Update neighbor counts of new matrix
   var neighbors = 0;
