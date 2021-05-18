@@ -259,12 +259,12 @@ function newCubeGame() {
     for(let j=0; j < 12; j+=1) {
       golMatrix[i][j] = [];
       for(let k=0; k < 12; k+=1) {
-   
+        offsets.push(i * 3, j * 3, k * 3);
+
         // Active game cubes
 	//cube: skip adding offsets and colors and geometry will not add anything there
 	//in the golMatrix: set it equal to a new cube with parameter: out of bounds 
         if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-          offsets.push(i * 3, j * 3, k * 3);
 
           var rand_bool = Math.random() < 0.2;
           //check which shape
