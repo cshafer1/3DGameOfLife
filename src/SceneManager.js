@@ -308,25 +308,57 @@ function newCubeGame() {
 function newSphereGame() {
   var colors = [];
   var offsets = [];
-
+  var icount = 0;
   var tmpIndex = 0;
   golMatrix = [];
-  for(let i=0; i < 12; i+=1) {
+  var jcount = 0;
+  var kcount = 0;
+  for(let i=0; i < 16; i+=1) {
+	console.log("JCOUNT", jcount);
+       if(jcount < 8){
+   		icount++;
+	}else{
+
+		icount--;
+	}
     golMatrix[i] = [];
-    for(let j=0; j < 12; j+=1) {
+
+    for(let j=0; j < 16; j+=1){
+
       golMatrix[i][j] = [];
       for(let k=0; k < 12; k+=1) {
-        offsets.push(i * 3, j * 3, k * 3);
 
+	 	 if(jcount < 10){
+                kcount++;
+        }else{
+                console.log(kcount);
+                kcount--;
+	}
+
+       	 offsets.push(icount * 3 , -jcount * 3  , 3*k/icount);
+	 offsets.push(-icount * 3 , jcount * 3  , -3*k/icount);
+	  offsets.push(-icount * 3 , -jcount * 3  , -3*k/icount);
+	  offsets.push(-icount * 3 , jcount * 3  ,-3*k/icount);
+	  offsets.push(-icount * 3 , jcount * 3  ,-3*k/jcount);
+	//offsets.push(icount * 3, icount * 3 , -jcount * (i));
+	
+	//offsets.push(i * 3, jcount *3 , icount * 3);
+	//offsets.push(i * 3, jcount *3 , icount * 3);
         // Active game cubes
-        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-
+	
+ 	if((i != 0 && i != 11) && (k != 0 && k!= 11) && (j != 0 && j != 11)) {
           var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
-          if(rand_bool)
-            colors.push(1.0,0.0,0.0,0.8);
-          else {
+          if(rand_bool){ 
+ 	  //  for(let m = 0; m<=icount; m+=1){
+		console.log("adding");
+                 colors.push(1.0,0.0,0.0,0.8);
+		colors.push(1.0,0.0,0.0,0.8);
+		 colors.push(1.0,0.0,0.0,0.8);
+		
+	  //}
+        }  else {
             colors.push(1.0,0.0,0.0,0.0); // transparent
           }
           tmpIndex += 4;
@@ -338,8 +370,11 @@ function newSphereGame() {
           colors.push(1.0,1.0,1.0,0.0); // transparent
         }
       }
+
     }
+ 	jcount++;
   }
+
   resetAllNeighbors(golMatrix, "cube");
 
   return [ colors, offsets ]
@@ -358,10 +393,10 @@ function newDonutGame() {
 
 
       for(let k=0; k < 25; k+=1) {
-        offsets.push(i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
+       	  offsets.push(i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
         offsets.push(i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
         offsets.push(-1 * i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(-1 * i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2))); 
+        offsets.push(-1 * i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
 
         // Active game cubes
         if((j != 0 && j != 11) && (k != 0 && k != 24)) {
