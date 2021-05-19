@@ -3,7 +3,7 @@
 */
 // Global Constants
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
+const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const color = new THREE.Color();
 const raycaster = new THREE.Raycaster();
@@ -21,6 +21,7 @@ var time = 0;
 var parameters;
 var running = true;
 var type = "donut";
+var name = "donutMesh"
 var rule_params;
 
 
@@ -78,8 +79,8 @@ window.onload = function init() {
 				- 1, - 1, - 1, 0, 0, 1, 0, 0
 			] ), 8 );
 
-  const geometry = new THREE.InstancedBufferGeometry();
-  
+  var geometry = new THREE.InstancedBufferGeometry();
+
   //Positions for cubes loaded from vertexBuffer, 3 data points, starting at position 0.
   const positions = new THREE.InterleavedBufferAttribute(vertexBuffer, 3, 0);
   //UV coords for cubes, 2 data points, starting at position 4.
@@ -113,8 +114,10 @@ window.onload = function init() {
 
   colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
   colorAttr.dynamic = true;
+  offsetAttr = new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3);
+  offsetAttr.dynamic = true;
   //Send data to the shader.
-  geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+  geometry.setAttribute('offset', offsetAttr);
   geometry.setAttribute('color', colorAttr);
 
   //Create a basic material
@@ -141,6 +144,7 @@ window.onload = function init() {
       `)
   }
   mesh = new THREE.Mesh(geometry, phongMaterial);
+  mesh.name = name;
   scene.add(mesh);
 
   // Add lighting
@@ -154,12 +158,12 @@ window.onload = function init() {
   gui.add(gui_props, "light_posX", 0, 100);
   gui.add(gui_props, "generation_time", 0, 3);
   parameters = {
-    is_cube: true,
+    is_cube: false,
     is_sphere: false,
-    is_donut: false,
+    is_donut: true,
     stop: false
   }
-//RULE BUTTON 
+//RULE BUTTON
    rule_params = {
         4555: true,
         5766: false
@@ -176,7 +180,7 @@ window.onload = function init() {
       }
       rule_params[prop] = true;
   }
-     
+
   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){
     setChecked("is_cube");
     type = "cube";
@@ -186,23 +190,25 @@ window.onload = function init() {
     offsets = cubeData[1];
     colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
     colorAttr.dynamic = true;
+    offsetAttr = new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3);
+    offsetAttr.dynamic = true;
+
+
+    geometry = new THREE.InstancedBufferGeometry();
+    geometry.setAttribute('position', positions);
+    geometry.setAttribute('uv', uvs);
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     //Send data to the shader.
-    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+    geometry.setAttribute('offset', offsetAttr);
     geometry.setAttribute('color', colorAttr);
-    requestAnimationFrame(animate);
-  });
-  gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
-    setChecked("is_sphere");
-    type = "sphere";
-    running = true;
-    cubeData = newSphereGame();
-    colors = cubeData[0];
-    offsets = cubeData[1];
-    colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
-    colorAttr.dynamic = true;
-    //Send data to the shader.
-    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
-    geometry.setAttribute('color', colorAttr);
+    var obj = scene.getObjectByName(name)
+    obj.geometry.dispose();
+    obj.material.dispose();
+    scene.remove(obj)
+    mesh = new THREE.Mesh(geometry, phongMaterial);
+    name = "cubeMesh"
+    mesh.name = name
+    scene.add(mesh)
     requestAnimationFrame(animate);
   });
   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
@@ -214,20 +220,34 @@ window.onload = function init() {
     offsets = cubeData[1];
     colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
     colorAttr.dynamic = true;
+    offsetAttr = new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3);
+    offsetAttr.dynamic = true;
+    geometry = new THREE.InstancedBufferGeometry();
+    geometry.setAttribute('position', positions);
+    geometry.setAttribute('uv', uvs);
+    geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     //Send data to the shader.
-    geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3));
+    geometry.setAttribute('offset', offsetAttr);
     geometry.setAttribute('color', colorAttr);
+    var obj = scene.getObjectByName(name)
+    obj.geometry.dispose();
+    obj.material.dispose();
+    scene.remove(obj)
+    mesh = new THREE.Mesh(geometry, phongMaterial);
+    name = "donutMesh"
+    mesh.name = name
+    scene.add(mesh)
     requestAnimationFrame(animate);
-  }); 
+  });
   gui.add(parameters, "stop").name('Stop').listen().onChange(function(){
     running = !running;
     setChecked("stop");
-  }); 
+  });
 
-  
+
   function setChecked( prop ){
- 
-   for (let param in parameters){ 
+
+   for (let param in parameters){
 	 parameters[param] = false;
   }
     parameters[prop] = true;
@@ -255,7 +275,7 @@ function onMouseMove( event ) {
 
   mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
   mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
- 
+
 }
 
 function onClick() {
@@ -280,67 +300,7 @@ function newCubeGame() {
 
           var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
-          
-          if(rand_bool)
-            colors.push(1.0,0.0,0.0,0.8);
-          else {
-            colors.push(1.0,0.0,0.0,0.0); // transparent
-          }
-          tmpIndex += 4;
-        }
-        // Border layer
-        else {
-          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
-          tmpIndex += 4;
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-        }
-      }
-    }
-  }
-  resetAllNeighbors(golMatrix);
 
-  return [ colors, offsets ]
-}
-
-function newSphereGame() {
-  var colors = [];
-  var offsets = [];
-  var icount = 0;
-  var tmpIndex = 0;
-  golMatrix = [];
-  var jcount = 0;
-  var kcount = 0;
-  for(let i=0; i < 16; i+=1) {
-        console.log("JCOUNT", jcount);
-       if(jcount < 8){
-                icount++;
-        }else{
-
-                icount--;
-        }
-    golMatrix[i] = [];
-
-    for(let j=0; j < 16; j+=1){
-
-      golMatrix[i][j] = [];
-      for(let k=0; k < 12; k+=1) {
-
-                 if(jcount < 10){
-                kcount++;
-        }else{
-                console.log(kcount);
-                kcount--;
-        }
-        offsets.push(i * 3, j * 3, k * 3);
-	offsets.push(icount * 3, j * 3, k * 3);
-	offsets.push(i * 3, jcount * 3, k * 3);
-
-        // Active game cubes
-        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
-
-          var rand_bool = Math.random() < 0.2;
-          golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
-          
           if(rand_bool)
             colors.push(1.0,0.0,0.0,0.8);
           else {
@@ -397,7 +357,7 @@ function newDonutGame() {
         // Active game cubes
           var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
-          
+
           if(rand_bool) {
             colors.push(0.8,0.0,0.0,0.8);
             colors.push(0.8,0.0,0.0,0.8);
@@ -419,7 +379,7 @@ function newDonutGame() {
 }
 
 function gameOfLife(ruleset) {
-  
+  renderer.renderLists.dispose();
   var e_min, e_max;
   var f_min, f_max;
 
@@ -439,31 +399,35 @@ function gameOfLife(ruleset) {
   var tempGol = golMatrix;
   var old_cell;
   var index;
- //spotlight.position.x = gui_props.light_posX; 
+  var obj;
+
+  obj = scene.getObjectByName(name)
+ //spotlight.position.x = gui_props.light_posX;
 
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
-
+  const num = (type == "donut" ? 46 : 11)
+  console.log(num)
   for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
-      for(let k=1; k < 47; k+=1) {
+      for(let k=1; k < num; k+=1) {
         old_cell = golMatrix[i][j][k];
         // Death Condition
         if(old_cell.alive && (old_cell.neighbors < e_min || old_cell.neighbors > e_max)) {
           tempGol[i][j][k].die(tempGol, i, j, k);
           index = old_cell.index;
-          scene.children[0].geometry.attributes.color.array[index + 3] = 0.0; // make cube transparent
+          obj.geometry.attributes.color.array[index + 3] = 0.0; // make cube transparent
         }
         // Acitvation Condition
         else if (!old_cell.alive && old_cell.neighbors >= f_min && old_cell.neighbors <= f_max) {
           tempGol[i][j][k].activate(tempGol, i, j, k);
           index = old_cell.index;
-         	scene.children[0].geometry.attributes.color.array[index + 3] = 0.8; // make cube visible 
+         	obj.geometry.attributes.color.array[index + 3] = 0.8; // make cube visible
 	      }
       }
     }
   }
-  scene.children[0].geometry.attributes.color.needsUpdate = true;
+  obj.geometry.attributes.color.needsUpdate = true;
   golMatrix = tempGol;
 }
 
@@ -540,13 +504,13 @@ function animate(delta) {
 }
 /*Shape functions*/
 //function to draw generic torus
-function drawTorus(r, sr, num_fac, section_num_face) 
+function drawTorus(r, sr, num_fac, section_num_face)
 //radius, section radius, number of faces, number of faces on each section
 {
 
 
   var vert = new Array();
- 
+
   // Iterates along the big circle and then around a section
   for(var i=0;i<n;i++)               // Iterates over all strip rounds
    {
@@ -556,12 +520,12 @@ function drawTorus(r, sr, num_fac, section_num_face)
         var a =  2*Math.PI*(i+j/section_num_face+k)/n;
         var sa = 2*Math.PI*j/section_num_face;
         var x, y, z;
- 
+
         // Coordinates on the surface of the torus
         vert.push(x = (r+sr*Math.cos(sa))*Math.cos(a)); // X
         vert.push(y = (r+sr*Math.cos(sa))*Math.sin(a)); // Y
         vert.push(z = sr*Math.sin(sa));                 // Z
-      
+
        }
    }
   // Converts and returns array
@@ -572,7 +536,7 @@ function drawTorus(r, sr, num_fac, section_num_face)
 }
 
 function drawSphere(radius){
-    var vertices = new Array();		
+    var vertices = new Array();
     var increment = Math.PI/36;
 
     for (var theta = 0.0; theta < Math.PI*2 - increment; theta += increment){
