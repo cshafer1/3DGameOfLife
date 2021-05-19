@@ -20,6 +20,7 @@ var mesh;
 var time = 0;
 var parameters;
 var running = true;
+var type = "donut";
 
 
 window.onload = function init() {
@@ -105,7 +106,7 @@ window.onload = function init() {
   // // Initialize golMatrix to 3D matrix to represent entries
   // // We will need an instanced material to change transparency
   // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
-  var cubeData = newCubeGame();
+  var cubeData = newDonutGame();
   var colors = cubeData[0];
   var offsets = cubeData[1];
 
@@ -159,6 +160,7 @@ window.onload = function init() {
   }
   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){
     setChecked("is_cube");
+    type = "cube";
     running = true;
     cubeData = newCubeGame();
     colors = cubeData[0];
@@ -172,6 +174,7 @@ window.onload = function init() {
   });
   gui.add(parameters, "is_sphere").name('Sphere').listen().onChange(function(){
     setChecked("is_sphere");
+    type = "sphere";
     running = true;
     cubeData = newSphereGame();
     colors = cubeData[0];
@@ -185,6 +188,7 @@ window.onload = function init() {
   });
   gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
     setChecked("is_donut");
+    type = "donut";
     running = true;
     cubeData = newDonutGame();
     colors = cubeData[0];
@@ -236,33 +240,7 @@ function onMouseMove( event ) {
 }
 
 function onClick() {
-   raycaster.setFromCamera( mouse, camera );
-   controls.update();
- 
- //Dirty for loop to change colors and transparency dynamically, 4000 is the limit
-  //Because we made 1000 cubes, and theres 4 color variables per cube.
-  //for (let i = 0; i < 4000; i += 4) {
-    //r = Math.random()
-    //g = Math.random()
-    //b = Math.random()
-    //a = Math.random()
-    //scene.children[0].geometry.attributes.color.array[i] = r;
-    //scene.children[0].geometry.attributes.color.array[i+1] = g;
-    //scene.children[0].geometry.attributes.color.array[i+2] = b;
-    //scene.children[0].geometry.attributes.color.array[i+3] = a;
-  //}
-  //scene.children[0].geometry.attributes.color.needsUpdate = true;
-  let intersection = raycaster.intersectObjects(scene.children[0]);
- 
-
-  // console.dir(intersection);
-
-   if ( intersection.length > 0 ) {
-
-     console.log(intersection.length)
-   }
-   //scene.children[0].geometry.attributes.color.needsUpdate = true;
-
+  controls.update();
 }
 
 function newCubeGame() {
@@ -300,7 +278,7 @@ function newCubeGame() {
       }
     }
   }
-  resetAllNeighbors(golMatrix, "cube");
+  resetAllNeighbors(golMatrix);
 
   return [ colors, offsets ]
 }
@@ -340,7 +318,7 @@ function newSphereGame() {
       }
     }
   }
-  resetAllNeighbors(golMatrix, "cube");
+  resetAllNeighbors(golMatrix);
 
   return [ colors, offsets ]
 }
@@ -349,23 +327,36 @@ function newDonutGame() {
   var colors = [];
   var offsets = [];
 
+  var x_scalar = -1
+  var z_scalar = 1
+
   var tmpIndex = 0;
   golMatrix = [];
-  for(let i=0; i < 25; i+=1) {
+  for(let i=0; i < 12; i+=1) {
     golMatrix[i] = [];
     for(let j=0; j < 12; j+=1) {
       golMatrix[i][j] = [];
 
+      x_scalar = 1
+      z_scalar = 1
 
-      for(let k=0; k < 25; k+=1) {
-        offsets.push(i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(-1 * i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(-1 * i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2))); 
+      for(let k=0; k < 48; k+=1) {
+
+        if(k == 12) {
+          x_scalar = 1
+          z_scalar = -1
+        } else if(k == 24) {
+          x_scalar = -1
+          z_scalar = 1
+        } else if(k == 36) {
+          x_scalar = -1
+          z_scalar = -1
+        }
+
+        offsets.push(x_scalar * i * 3, j * 3, z_scalar * Math.sqrt(1089 - Math.pow(i*3, 2)));
 
         // Active game cubes
-        if((j != 0 && j != 11) && (k != 0 && k != 24)) {
-          var rand_bool = true; //Math.random() < 0.2;
+          var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
           if(rand_bool) {
@@ -380,20 +371,10 @@ function newDonutGame() {
             colors.push(1.0,0.0,0.0,0.0); // transparent
           }
           tmpIndex += 4;
-        }
-        // Border layer
-        else {
-          golMatrix[i][j][k] = new Cell(false, 0, tmpIndex);
-          tmpIndex += 4;
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-          colors.push(1.0,1.0,1.0,0.0); // transparent
-        }
       }
     }
   }
-  resetAllNeighbors(golMatrix, "donut");
+  resetAllNeighbors(golMatrix);
 
   return [ colors, offsets ]
 }
@@ -415,19 +396,18 @@ function gameOfLife(ruleset) {
     f_min = 6;
     f_max = 6;
   }
-  resetAllNeighbors(golMatrix, "cube");
+  resetAllNeighbors(golMatrix);
   var tempGol = golMatrix;
   var old_cell;
   var index;
  //spotlight.position.x = gui_props.light_posX; 
-
 
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
 
   for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
-      for(let k=1; k < 11; k+=1) {
+      for(let k=1; k < 47; k+=1) {
         old_cell = golMatrix[i][j][k];
         // Death Condition
         if(old_cell.alive && (old_cell.neighbors < e_min || old_cell.neighbors > e_max)) {
@@ -448,7 +428,7 @@ function gameOfLife(ruleset) {
   golMatrix = tempGol;
 }
 
-function resetAllNeighbors(golMatrix, type) {
+function resetAllNeighbors(golMatrix) {
   if(type == "cube") {
     for(let i=1; i < 11; i+=1) {
       for(let j=1; j < 11; j+=1) {
@@ -458,13 +438,17 @@ function resetAllNeighbors(golMatrix, type) {
       }
     }
   } else if (type == "donut") {
-    // for(let i=1; i < 63; i+=1) {
-    //   for(let j=1; j < 63; j+=1) {
-    //     for(let k=1; k < 63; k+=1) {
-    //       updateNeighbors(golMatrix, i, j, k);
-    //     }
-    //   }
-    // }
+    // Update Neighbors
+    for(let i=0; i < 11; i+=1) {
+      for(let j=1; j < 11; j+=1) {
+        for(let k=1; k < 46; k+=1) {
+          if(i == 0 || i == 10)
+            continue //updateDonutEdgeNeighbors(golMatrix, i, j, k);
+          else
+            updateNeighbors(golMatrix, i, j, k);
+        }
+      }
+    }
   }
 }
 
@@ -481,6 +465,26 @@ function updateNeighbors(tempGol, i, j, k) {
     }
   }
 }
+
+// function updateDonutEdgeNeighbors(tempGol, i, j, k) {
+//   // Update neighbor counts of new matrix
+//   var neighbors = 0;
+//   for(let x=-1; x <= 1; x+=1) {
+//     if(i == 0 && x == -1) x = 11;
+//     if(i == 11 && x == 1) x = -11;
+
+//     for(let y=-1; y <= 1; y+=1) {
+//       for(let z=-1; z <= 1; z+=1) {
+//         if(x == 0 && y == 0 && z == 0) continue;
+//         neighbors += tempGol[i+x][j+y][k+z].alive;
+//         tempGol[i][j][k].neighbors = neighbors;
+//       }
+//     }
+
+//     if(i == 0 && x == 11) x = -1;
+//     if(i == 11 && x == -11) x = 1;
+//   }
+// }
 
 function animate(delta) {
 	if(running) requestAnimationFrame( animate );
