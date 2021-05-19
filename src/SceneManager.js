@@ -3,7 +3,7 @@
 */
 // Global Constants
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100000 );
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 const color = new THREE.Color();
 const raycaster = new THREE.Raycaster();
@@ -20,8 +20,8 @@ var mesh;
 var time = 0;
 var parameters;
 var running = true;
-var type = "donut";
-var name = "donutMesh"
+var type = "cube";
+var name = "cubeMesh"
 var rule_params;
 
 
@@ -108,7 +108,7 @@ window.onload = function init() {
   // // Initialize golMatrix to 3D matrix to represent entries
   // // We will need an instanced material to change transparency
   // // We create a border layer around the outside of the cube of transparent cubes (need for game rules)
-  var cubeData = newDonutGame();
+  var cubeData = newCubeGame();
   var colors = cubeData[0];
   var offsets = cubeData[1];
 
@@ -125,6 +125,7 @@ window.onload = function init() {
     flatShading: true,
     transparent: true
   });
+  phongMaterial.depthTest = false;
   //Modify the shader of the basic material before it is compiled.
   phongMaterial.onBeforeCompile = function( shader ) {
     shader.vertexShader = `
@@ -158,9 +159,8 @@ window.onload = function init() {
   gui.add(gui_props, "light_posX", 0, 100);
   gui.add(gui_props, "generation_time", 0, 3);
   parameters = {
-    is_cube: false,
-    is_sphere: false,
-    is_donut: true,
+    is_cube: true,
+    is_donut: false,
     stop: false
   }
 //RULE BUTTON
