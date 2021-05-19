@@ -160,7 +160,7 @@ window.onload = function init() {
   gui.add(gui_props, "generation_time", 0, 3);
   parameters = {
     is_cube: true,
-    is_donut: false,
+    is_ring: false,
     stop: false
   }
 //RULE BUTTON
@@ -211,11 +211,11 @@ window.onload = function init() {
     scene.add(mesh)
     requestAnimationFrame(animate);
   });
-  gui.add(parameters, "is_donut").name('Donut').listen().onChange(function(){
-    setChecked("is_donut");
-    type = "donut";
+  gui.add(parameters, "is_ring").name('Ring').listen().onChange(function(){
+    setChecked("is_ring");
+    type = "ring";
     running = true;
-    cubeData = newDonutGame();
+    cubeData = newRingGame();
     colors = cubeData[0];
     offsets = cubeData[1];
     colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(colors), 4);
@@ -234,7 +234,7 @@ window.onload = function init() {
     obj.material.dispose();
     scene.remove(obj)
     mesh = new THREE.Mesh(geometry, phongMaterial);
-    name = "donutMesh"
+    name = "ringMesh"
     mesh.name = name
     scene.add(mesh)
     requestAnimationFrame(animate);
@@ -322,7 +322,7 @@ function newCubeGame() {
   return [ colors, offsets ]
 }
 
-function newDonutGame() {
+function newRingGame() {
   var colors = [];
   var offsets = [];
 
@@ -406,7 +406,7 @@ function gameOfLife(ruleset) {
 
   // For each cell, check conditions as defined by rules
   // Update if cell is alive and neighbors' neighbor count accordingly
-  const num = (type == "donut" ? 46 : 11)
+  const num = (type == "ring" ? 46 : 11)
   console.log(num)
   for(let i=1; i < 11; i+=1) {
     for(let j=1; j < 11; j+=1) {
@@ -440,7 +440,7 @@ function resetAllNeighbors(golMatrix) {
         }
       }
     }
-  } else if (type == "donut") {
+  } else if (type == "ring") {
     // Update Neighbors
     for(let i=0; i < 11; i+=1) {
       for(let j=1; j < 11; j+=1) {
