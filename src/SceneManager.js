@@ -21,6 +21,7 @@ var time = 0;
 var parameters;
 var running = true;
 var type = "donut";
+var rule_params;
 
 
 window.onload = function init() {
@@ -158,6 +159,24 @@ window.onload = function init() {
     is_donut: false,
     stop: false
   }
+//RULE BUTTON 
+   rule_params = {
+        4555: true,
+        5766: false
+    }
+    gui.add(rule_params, "4555").name('4555').listen().onChange(function(){
+        	rule_check("4555");
+   });
+    gui.add(rule_params, "5766").name('5766').listen().onChange(function(){
+        rule_check("5766");
+    });
+  function rule_check(prop){
+      for (let param in rule_params){
+         rule_params[param] = false;
+      }
+      rule_params[prop] = true;
+  }
+     
   gui.add(parameters, "is_cube").name('Cube').listen().onChange(function(){
     setChecked("is_cube");
     type = "cube";
@@ -292,13 +311,13 @@ function newSphereGame() {
   var jcount = 0;
   var kcount = 0;
   for(let i=0; i < 16; i+=1) {
-	console.log("JCOUNT", jcount);
+        console.log("JCOUNT", jcount);
        if(jcount < 8){
-   		icount++;
-	}else{
+                icount++;
+        }else{
 
-		icount--;
-	}
+                icount--;
+        }
     golMatrix[i] = [];
 
     for(let j=0; j < 16; j+=1){
@@ -306,37 +325,25 @@ function newSphereGame() {
       golMatrix[i][j] = [];
       for(let k=0; k < 12; k+=1) {
 
-	 	 if(jcount < 10){
+                 if(jcount < 10){
                 kcount++;
         }else{
                 console.log(kcount);
                 kcount--;
-	}
+        }
+        offsets.push(i * 3, j * 3, k * 3);
+	offsets.push(icount * 3, j * 3, k * 3);
+	offsets.push(i * 3, jcount * 3, k * 3);
 
-       	 offsets.push(icount * 3 , -jcount * 3  , 3*k/icount);
-	 offsets.push(-icount * 3 , jcount * 3  , -3*k/icount);
-	  offsets.push(-icount * 3 , -jcount * 3  , -3*k/icount);
-	  offsets.push(-icount * 3 , jcount * 3  ,-3*k/icount);
-	  offsets.push(-icount * 3 , jcount * 3  ,-3*k/jcount);
-	//offsets.push(icount * 3, icount * 3 , -jcount * (i));
-	
-	//offsets.push(i * 3, jcount *3 , icount * 3);
-	//offsets.push(i * 3, jcount *3 , icount * 3);
         // Active game cubes
-	
- 	if((i != 0 && i != 11) && (k != 0 && k!= 11) && (j != 0 && j != 11)) {
+        if((i != 0 && i != 11) && (k != 0 && k != 11) && (j != 0 && j != 11)) {
+
           var rand_bool = Math.random() < 0.2;
           golMatrix[i][j][k] = new Cell(rand_bool, 0, tmpIndex);
           
-          if(rand_bool){ 
- 	  //  for(let m = 0; m<=icount; m+=1){
-		console.log("adding");
-                 colors.push(1.0,0.0,0.0,0.8);
-		colors.push(1.0,0.0,0.0,0.8);
-		 colors.push(1.0,0.0,0.0,0.8);
-		
-	  //}
-        }  else {
+          if(rand_bool)
+            colors.push(1.0,0.0,0.0,0.8);
+          else {
             colors.push(1.0,0.0,0.0,0.0); // transparent
           }
           tmpIndex += 4;
@@ -348,16 +355,9 @@ function newSphereGame() {
           colors.push(1.0,1.0,1.0,0.0); // transparent
         }
       }
-
     }
- 	jcount++;
   }
-
-
-  resetAllNeighbors(golMatrix, "cube");
-
- // resetAllNeighbors(golMatrix);
-
+  resetAllNeighbors(golMatrix);
 
   return [ colors, offsets ]
 }
@@ -379,13 +379,6 @@ function newDonutGame() {
       x_scalar = 1
       z_scalar = 1
 
-
-      for(let k=0; k < 25; k+=1) {
-       	  offsets.push(i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(-1 * i * 3, j * 3, Math.sqrt(625 - Math.pow(i*3, 2)));
-        offsets.push(-1 * i * 3, j * 3, -1 * Math.sqrt(625 - Math.pow(i*3, 2)));
-
       for(let k=0; k < 48; k+=1) {
 
         if(k == 12) {
@@ -400,7 +393,6 @@ function newDonutGame() {
         }
 
         offsets.push(x_scalar * i * 3, j * 3, z_scalar * Math.sqrt(1089 - Math.pow(i*3, 2)));
-
 
         // Active game cubes
           var rand_bool = Math.random() < 0.2;
